@@ -111,6 +111,43 @@ button:hover {
 <script>
 const API_KEY = "7830d0086d9368f117160c21468739fa";
 
+// ===== Add this function HERE =====
+async function uploadToImgBB(imageUrl) {
+    const status = document.getElementById("status");
+
+    // Fetch the image as a blob
+    const response = await fetch(imageUrl);
+    if (!response.ok) throw new Error("Failed to fetch image: " + imageUrl);
+
+    const blob = await response.blob();
+
+    // Convert blob to base64
+    const reader = new FileReader();
+    const base64 = await new Promise((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+
+    status.innerText = "Uploading to ImgBB...";
+
+    // Upload to ImgBB
+    const formData = new FormData();
+    formData.append("key", API_KEY);
+    formData.append("image", base64);
+
+    const uploadResponse = await fetch("https://api.imgbb.com/1/upload", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await uploadResponse.json();
+    if (!data.success) throw new Error("ImgBB upload failed");
+
+    return data.data.url; // Return the new ImgBB URL
+}
+
+// ===== Your existing convertImages() function =====
 async function convertImages() {
     const inputBox = document.getElementById("bbcodeInput");
     const outputBox = document.getElementById("output");
@@ -130,24 +167,24 @@ async function convertImages() {
     let updatedText = input;
 
     for (let i = 0; i < matches.length; i++) {
-    const fullMatch = matches[i][0];   // full tag
-    const tagType = matches[i][1];     // img or fimg
-    const sizePart = matches[i][2] || ""; // =170,170 (if exists)
-    const imageUrl = matches[i][3];    // actual URL
+        const fullMatch = matches[i][0];   // full tag
+        const tagType = matches[i][1];     // img or fimg
+        const sizePart = matches[i][2] || ""; // =170,170 (if exists)
+        const imageUrl = matches[i][3];    // actual URL
 
-    status.innerText = `Uploading image ${i + 1} of ${matches.length}...`;
+        status.innerText = `Uploading image ${i + 1} of ${matches.length}...`;
 
-    try {
-        const newUrl = await uploadToImgBB(imageUrl);
+        try {
+            const newUrl = await uploadToImgBB(imageUrl);
 
-        // Keep original size formatting
-        const newTag = `[${tagType}${sizePart}]${newUrl}[/${tagType}]`;
+            // Keep original size formatting
+            const newTag = `[${tagType}${sizePart}]${newUrl}[/${tagType}]`;
 
-        updatedText = updatedText.replace(fullMatch, newTag);
-    } catch (error) {
-        console.error(error);
+            updatedText = updatedText.replace(fullMatch, newTag);
+        } catch (error) {
+            console.error(error);
+        }
     }
-}
 
     status.innerText = "Conversion complete!";
     outputBox.value = updatedText;
@@ -157,4 +194,5 @@ async function convertImages() {
 </body>
 
 </html>
+
 
