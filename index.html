@@ -119,7 +119,7 @@ async function convertImages() {
     const input = inputBox.value;
 
     // Match BOTH [img] and [fimg]
-    const imgRegex = /\[(img|fimg)\](.*?)\[\/\1\]/gi;
+    const imgRegex = /\[(img|fimg)(=[^\]]+)?\](.*?)\[\/\1\]/gi;
     const matches = [...input.matchAll(imgRegex)];
 
     if (matches.length === 0) {
@@ -130,21 +130,24 @@ async function convertImages() {
     let updatedText = input;
 
     for (let i = 0; i < matches.length; i++) {
-        const fullMatch = matches[i][0];   // entire tag
-        const tagType = matches[i][1];     // img OR fimg
-        const imageUrl = matches[i][2];    // the URL
+    const fullMatch = matches[i][0];   // full tag
+    const tagType = matches[i][1];     // img or fimg
+    const sizePart = matches[i][2] || ""; // =170,170 (if exists)
+    const imageUrl = matches[i][3];    // actual URL
 
-        status.innerText = `Uploading image ${i + 1} of ${matches.length}...`;
+    status.innerText = `Uploading image ${i + 1} of ${matches.length}...`;
 
-        try {
-            const newUrl = await uploadToImgBB(imageUrl);
-            const newTag = `[${tagType}]${newUrl}[/${tagType}]`;
+    try {
+        const newUrl = await uploadToImgBB(imageUrl);
 
-            updatedText = updatedText.replace(fullMatch, newTag);
-        } catch (error) {
-            console.error(error);
-        }
+        // Keep original size formatting
+        const newTag = `[${tagType}${sizePart}]${newUrl}[/${tagType}]`;
+
+        updatedText = updatedText.replace(fullMatch, newTag);
+    } catch (error) {
+        console.error(error);
     }
+}
 
     status.innerText = "Conversion complete!";
     outputBox.value = updatedText;
@@ -154,3 +157,4 @@ async function convertImages() {
 </body>
 
 </html>
+
